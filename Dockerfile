@@ -1,13 +1,26 @@
-FROM golang:1.17-alpine
+FROM --platform=$BUILDPLATFORM golang:1.20-alpine AS builder
 
 WORKDIR /app
 
 COPY go.mod ./
-COPY *.go ./
-COPY static ./static
 
-RUN go build -o /belajar-cicd-pemula
+RUN go mod download
+
+COPY . .
+
+ARG TARGETOS
+ARG TARGETARCH
+
+RUN CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH:-amd64} go build -o /app/belajar-cicd-pemula .
+
+FROM alpine:3.20
+
+WORKDIR /app
+
+COPY --from=builder /app/belajar-cicd-pemula /app/belajar-cicd-pemula
+
+COPY static ./static
 
 EXPOSE 3000
 
-CMD ["/belajar-cicd-pemula"]
+CMD ["/app/belajar-cicd-pemula"]
